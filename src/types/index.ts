@@ -45,6 +45,19 @@ export enum PermissionType {
   SHARE = 'share',
 }
 
+export interface ShareToken {
+  id: string;
+  token: string;
+  file_id: string;
+  created_by: string;
+  permission_level: 'view' | 'comment' | 'full';
+  expires_at?: string;
+  is_active: boolean;
+  created_at: string;
+  access_count: number;
+  max_access_count?: number;
+}
+
 // Access Log Types
 export interface AccessLog {
   id: string;

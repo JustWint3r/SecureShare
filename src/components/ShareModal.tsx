@@ -56,7 +56,7 @@ export default function ShareModal({ file, onClose, user }: ShareModalProps) {
       const data = await response.json();
 
       if (data.success) {
-        const link = `${window.location.origin}/shared/${data.shareToken}`;
+        const link = data.shareUrl || `${window.location.origin}/shared/${data.shareToken}`;
         setShareLink(link);
 
         // Generate QR code

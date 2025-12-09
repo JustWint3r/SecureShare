@@ -23,6 +23,7 @@ import FileUploadModal from '@/components/FileUploadModal';
 import FileGrid from '@/components/FileGrid';
 import Sidebar from '@/components/Sidebar';
 import SettingsModal from '@/components/SettingsModal';
+import AuditLogsPage from '@/components/AuditLogsPage';
 
 interface DashboardProps {
   user: any; // Database user object
@@ -46,6 +47,13 @@ export default function Dashboard({
   useEffect(() => {
     fetchFiles();
   }, [activeTab]);
+
+  useEffect(() => {
+    // Update currentUser when user prop changes
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, [user]);
 
   const fetchFiles = async () => {
     try {
@@ -153,27 +161,19 @@ export default function Dashboard({
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1">
           {activeTab === 'my-files' || activeTab === 'shared-files' ? (
-            <FileGrid
-              files={filteredFiles}
-              loading={loading}
-              onRefresh={fetchFiles}
-              isOwnedFiles={activeTab === 'my-files'}
-              user={privyUser}
-            />
-          ) : activeTab === 'audit-logs' ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="text-center text-gray-500">
-                <Activity className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Audit Logs</h3>
-                <p>Audit logging functionality will be implemented here.</p>
-                <p className="text-sm mt-2">
-                  This will show blockchain-based access logs for transparency
-                  and accountability.
-                </p>
-              </div>
+            <div className="p-6">
+              <FileGrid
+                files={filteredFiles}
+                loading={loading}
+                onRefresh={fetchFiles}
+                isOwnedFiles={activeTab === 'my-files'}
+                user={privyUser}
+              />
             </div>
+          ) : activeTab === 'audit-logs' ? (
+            <AuditLogsPage user={currentUser} privyUser={privyUser} />
           ) : activeTab === 'user-management' ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="text-center text-gray-500">

@@ -44,11 +44,27 @@ CREATE TABLE access_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   file_id UUID REFERENCES files(id) ON DELETE CASCADE,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  action TEXT NOT NULL CHECK (action IN ('upload', 'download', 'view', 'share', 'revoke', 'delete')),
+  action TEXT NOT NULL CHECK (action IN ('upload', 'download', 'view', 'share', 'revoke', 'delete', 'update', 'rename', 'permission_granted', 'permission_revoked', 'access_via_link')),
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   ip_address INET,
   user_agent TEXT,
-  transaction_hash TEXT
+  transaction_hash TEXT,
+  metadata JSONB,
+  shared_with_user_id UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Share tokens table
+CREATE TABLE share_tokens (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  token TEXT UNIQUE NOT NULL,
+  file_id UUID REFERENCES files(id) ON DELETE CASCADE,
+  created_by UUID REFERENCES users(id) ON DELETE CASCADE,
+  permission_level TEXT NOT NULL CHECK (permission_level IN ('view', 'comment', 'full')),
+  expires_at TIMESTAMP WITH TIME ZONE,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  access_count INTEGER DEFAULT 0,
+  max_access_count INTEGER
 );
 
 -- Create indexes for better performance
@@ -58,6 +74,8 @@ CREATE INDEX idx_file_permissions_user_id ON file_permissions(user_id);
 CREATE INDEX idx_access_logs_file_id ON access_logs(file_id);
 CREATE INDEX idx_access_logs_user_id ON access_logs(user_id);
 CREATE INDEX idx_access_logs_timestamp ON access_logs(timestamp);
+CREATE INDEX idx_share_tokens_token ON share_tokens(token);
+CREATE INDEX idx_share_tokens_file_id ON share_tokens(file_id);
 
 -- Insert sample data for testing (optional)
 INSERT INTO users (email, password_hash, name, role, department) VALUES

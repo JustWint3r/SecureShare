@@ -19,6 +19,10 @@ export default function Home() {
       setSyncRetries(0); // Reset retry count
       setSyncError(null); // Reset error state
       syncUserWithDatabase();
+    } else if (!authenticated) {
+      // Clear user profile when logged out
+      setUserProfile(null);
+      setNeedsProfileSetup(false);
     }
   }, [authenticated, user]);
 

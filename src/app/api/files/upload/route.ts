@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     const ipfsHash = storagePath;
 
     // Store file metadata in database
-    const { data: fileRecord, error: dbError } = await supabase
+    const { data: fileRecord, error: dbError} = await supabaseAdmin
       .from('files')
       .insert({
         id: fileId,
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the upload in access logs
-    await supabase.from('access_logs').insert({
+    const { error: logError } = await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
       user_id: user.id,
       action: 'upload',
@@ -130,6 +130,11 @@ export async function POST(request: NextRequest) {
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
     });
+
+    if (logError) {
+      console.error('Failed to log upload action:', logError);
+      // Don't fail the upload if logging fails
+    }
 
     // TODO: In a real implementation, also log to blockchain
     // await blockchainService.uploadFile(fileId, ipfsHash, file.name, file.size);

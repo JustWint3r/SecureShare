@@ -50,8 +50,24 @@ export async function POST(request: NextRequest) {
     // Generate unique share token
     const shareToken = crypto.randomBytes(32).toString('hex');
 
-    // Create share record in database (you'll need to create a shares table)
-    // For now, we'll just return the token and log the action
+    // Create share record in database
+    const { error: shareError } = await supabaseAdmin
+      .from('share_tokens')
+      .insert({
+        token: shareToken,
+        file_id: fileId,
+        created_by: user.id,
+        permission_level: permission,
+        is_active: true,
+      });
+
+    if (shareError) {
+      console.error('Error creating share token:', shareError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create share link' },
+        { status: 500 }
+      );
+    }
 
     // Log the share action
     await supabaseAdmin.from('access_logs').insert({
@@ -65,9 +81,13 @@ export async function POST(request: NextRequest) {
       user_agent: request.headers.get('user-agent') || 'unknown',
     });
 
+    // Generate share URL
+    const shareUrl = `${request.nextUrl.origin}/shared/${shareToken}`;
+
     return NextResponse.json({
       success: true,
       shareToken,
+      shareUrl,
       permission,
       message: 'Share link generated successfully',
     });
@@ -79,6 +99,14 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+
+
+
+
+
+
+
 
 
 

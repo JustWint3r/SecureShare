@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ShareModal from './ShareModal';
+import FileAuditLogModal from './FileAuditLogModal';
 
 interface FileGridProps {
   files: FileMetadata[];
@@ -38,6 +39,10 @@ export default function FileGrid({
   );
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [shareModalFile, setShareModalFile] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [auditLogModalFile, setAuditLogModalFile] = useState<{
     id: string;
     name: string;
   } | null>(null);
@@ -142,9 +147,7 @@ export default function FileGrid({
   };
 
   const handleViewAuditLog = (fileId: string, fileName: string) => {
-    toast('Audit log view will be implemented', {
-      icon: 'ℹ️',
-    });
+    setAuditLogModalFile({ id: fileId, name: fileName });
     setOpenDropdown(null);
   };
 
@@ -378,6 +381,16 @@ export default function FileGrid({
           file={shareModalFile}
           onClose={() => setShareModalFile(null)}
           user={user}
+        />
+      )}
+
+      {/* Audit Log Modal */}
+      {auditLogModalFile && (
+        <FileAuditLogModal
+          fileId={auditLogModalFile.id}
+          fileName={auditLogModalFile.name}
+          onClose={() => setAuditLogModalFile(null)}
+          privyUser={user}
         />
       )}
     </div>

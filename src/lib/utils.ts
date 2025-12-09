@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { FileText, File, FileSpreadsheet, Presentation } from 'lucide-react';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -40,6 +41,14 @@ export function getFileIcon(type: string): string {
   if (type.includes('sheet') || type.includes('excel')) return '📊';
   if (type.includes('presentation') || type.includes('powerpoint')) return '📺';
   return '📁';
+}
+
+export function getFileIconComponent(type: string) {
+  if (type.includes('pdf')) return FileText;
+  if (type.includes('word')) return FileText;
+  if (type.includes('sheet') || type.includes('excel')) return FileSpreadsheet;
+  if (type.includes('presentation') || type.includes('powerpoint')) return Presentation;
+  return File;
 }
 
 export function validateEmail(email: string): boolean {
