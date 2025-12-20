@@ -199,16 +199,21 @@ export default function Sidebar({
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left',
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left',
                 )}
+                initial={false}
+                animate={{
+                  backgroundColor: isActive ? 'var(--bg-secondary)' : 'transparent',
+                  borderColor: isActive ? 'var(--border-default)' : 'transparent',
+                }}
                 style={{
-                  background: isActive ? 'var(--bg-secondary)' : 'transparent',
-                  border: isActive ? '1px solid var(--border-default)' : '1px solid transparent',
+                  border: '1px solid transparent',
                 }}
                 whileHover={{
                   backgroundColor: isActive ? 'var(--bg-secondary)' : 'var(--bg-tertiary)',
                 }}
                 whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.2 }}
                 variants={itemVariants}
               >
                 <div className="relative flex items-center gap-3 flex-1">
