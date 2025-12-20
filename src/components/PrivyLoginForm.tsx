@@ -1,148 +1,312 @@
 'use client';
 
-import { Shield, FileText, Users, Lock, Wallet, Mail } from 'lucide-react';
+import { Shield, BookOpen, Lock, Users, Mail, Wallet, Check } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface PrivyLoginFormProps {
   onLogin: () => void;
 }
 
 export default function PrivyLoginForm({ onLogin }: PrivyLoginFormProps) {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+        delayChildren: 0.3,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 24 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+    },
+  };
+
+  const features = [
+    {
+      icon: Lock,
+      title: 'AES-256 Encryption',
+      description: 'Military-grade security for all documents',
+    },
+    {
+      icon: Shield,
+      title: 'Blockchain Verified',
+      description: 'Immutable audit trail on Ethereum',
+    },
+    {
+      icon: BookOpen,
+      title: 'Distributed Storage',
+      description: 'IPFS decentralized file system',
+    },
+    {
+      icon: Users,
+      title: 'Role-Based Access',
+      description: 'Tailored permissions for your institution',
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl flex bg-white rounded-2xl shadow-2xl overflow-hidden">
-        {/* Left Panel - Features */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 p-12 flex-col justify-center">
-          <div className="text-white">
-            <div className="flex items-center mb-8">
-              <Shield className="h-10 w-10 mr-3" />
-              <h1 className="text-3xl font-bold">SecureShare</h1>
-            </div>
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <div className="min-h-screen flex">
+        {/* Left Panel - Branding & Information */}
+        <motion.div
+          className="hidden lg:flex lg:w-2/5 xl:w-1/2 flex-col justify-center p-16 relative"
+          style={{ background: 'var(--accent-primary)' }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {/* Decorative element */}
+          <div
+            className="absolute top-0 right-0 w-64 h-64 opacity-10"
+            style={{
+              background: 'radial-gradient(circle, white 0%, transparent 70%)',
+            }}
+          />
 
-            <h2 className="text-4xl font-bold mb-6 leading-tight">
-              Blockchain-Powered Document Sharing
-            </h2>
-
-            <p className="text-xl mb-8 text-indigo-100 leading-relaxed">
-              Experience the future of secure document sharing with
-              decentralized storage, smart contract access control, and Web3
-              authentication.
-            </p>
-
-            <div className="space-y-6">
-              <div className="flex items-start">
-                <FileText className="h-6 w-6 mr-4 mt-1 text-indigo-200" />
-                <div>
-                  <h3 className="font-semibold text-lg">IPFS Storage</h3>
-                  <p className="text-indigo-200">
-                    Decentralized file storage with AES encryption
-                  </p>
-                </div>
+          <div className="relative z-10 max-w-xl">
+            {/* Logo */}
+            <motion.div
+              className="flex items-center gap-4 mb-12"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+            >
+              <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm">
+                <Shield className="h-10 w-10 text-white" strokeWidth={1.5} />
               </div>
-
-              <div className="flex items-start">
-                <Lock className="h-6 w-6 mr-4 mt-1 text-indigo-200" />
-                <div>
-                  <h3 className="font-semibold text-lg">Smart Contracts</h3>
-                  <p className="text-indigo-200">
-                    Blockchain-based access control and permissions
-                  </p>
-                </div>
+              <div>
+                <h1
+                  className="text-3xl font-semibold text-white"
+                  style={{ fontFamily: 'Crimson Pro, serif' }}
+                >
+                  SecureShare
+                </h1>
+                <p className="text-white/70 text-sm mt-1">
+                  Academic Document Management
+                </p>
               </div>
+            </motion.div>
 
-              <div className="flex items-start">
-                <Users className="h-6 w-6 mr-4 mt-1 text-indigo-200" />
-                <div>
-                  <h3 className="font-semibold text-lg">Role-Based Access</h3>
-                  <p className="text-indigo-200">
-                    Student, Lecturer, and Administrator roles
-                  </p>
-                </div>
-              </div>
+            {/* Main Heading */}
+            <motion.h2
+              className="text-5xl font-semibold text-white mb-6 leading-tight"
+              style={{ fontFamily: 'Crimson Pro, serif' }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+            >
+              Secure Document Sharing
+              <br />
+              for Higher Education
+            </motion.h2>
 
-              <div className="flex items-start">
-                <Wallet className="h-6 w-6 mr-4 mt-1 text-indigo-200" />
-                <div>
-                  <h3 className="font-semibold text-lg">Web3 Authentication</h3>
-                  <p className="text-indigo-200">
-                    Secure login with email or crypto wallet
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+            <motion.p
+              className="text-xl text-white/80 mb-12 leading-relaxed"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+            >
+              Powered by blockchain technology and distributed storage,
+              SecureShare provides unparalleled security and transparency for
+              academic institutions.
+            </motion.p>
 
-        {/* Right Panel - Login */}
-        <div className="w-full lg:w-1/2 p-8 lg:p-12">
-          <div className="max-w-md mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome to SecureShare
-              </h2>
-              <p className="text-gray-600">
-                Sign in with your email or connect your wallet to get started
+            {/* Features */}
+            <motion.div
+              className="space-y-5"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.6 }}
+            >
+              {features.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  className="flex items-start gap-4"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.9 + index * 0.1, duration: 0.5 }}
+                >
+                  <div className="p-2.5 bg-white/10 rounded-lg backdrop-blur-sm flex-shrink-0">
+                    <feature.icon className="h-5 w-5 text-white" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">
+                      {feature.title}
+                    </h3>
+                    <p className="text-white/70 text-sm">{feature.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Institution badge */}
+            <motion.div
+              className="mt-16 pt-8 border-t border-white/20"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.3, duration: 0.6 }}
+            >
+              <p className="text-white/60 text-sm">
+                Trusted by universities worldwide
               </p>
-            </div>
-
-            {/* Login Options */}
-            <div className="space-y-4">
-              <button
-                onClick={onLogin}
-                className="w-full flex items-center justify-center px-6 py-4 border-2 border-indigo-600 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 hover:border-indigo-700 transition-colors font-medium shadow-md"
-              >
-                <Mail className="h-5 w-5 mr-3" />
-                Sign in with Email
-              </button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">or</span>
-                </div>
-              </div>
-
-              <button
-                onClick={onLogin}
-                className="w-full flex items-center justify-center px-6 py-4 border-2 border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium shadow-sm"
-              >
-                <Wallet className="h-5 w-5 mr-3" />
-                Connect Wallet
-              </button>
-            </div>
-
-            {/* Features List */}
-            <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start">
-                <FileText className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">Powered by Web3 Technology</p>
-                  <ul className="space-y-1 text-xs">
-                    <li>• Privy authentication for secure login</li>
-                    <li>• Files encrypted with AES-256 encryption</li>
-                    <li>• Stored on decentralized IPFS network</li>
-                    <li>• Access control via Ethereum smart contracts</li>
-                    <li>• Complete audit trail on blockchain</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* University Notice */}
-            <div className="mt-6 text-center text-sm text-gray-500">
-              <p>Designed for university document sharing</p>
-              <p className="mt-1">Students • Lecturers • Administrators</p>
-            </div>
+              <p className="text-white/80 text-sm mt-2">
+                Students • Lecturers • Administrators
+              </p>
+            </motion.div>
           </div>
+        </motion.div>
+
+        {/* Right Panel - Authentication */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <motion.div
+            className="w-full max-w-md"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {/* Mobile Logo */}
+            <motion.div
+              className="lg:hidden flex items-center justify-center gap-3 mb-12"
+              variants={itemVariants}
+            >
+              <Shield className="h-10 w-10" style={{ color: 'var(--accent-primary)' }} />
+              <h1
+                className="text-3xl font-semibold"
+                style={{ fontFamily: 'Crimson Pro, serif', color: 'var(--text-primary)' }}
+              >
+                SecureShare
+              </h1>
+            </motion.div>
+
+            {/* Welcome Text */}
+            <motion.div className="text-center mb-10" variants={itemVariants}>
+              <h2
+                className="text-3xl font-semibold mb-3"
+                style={{ fontFamily: 'Crimson Pro, serif', color: 'var(--text-primary)' }}
+              >
+                Welcome Back
+              </h2>
+              <p style={{ color: 'var(--text-tertiary)' }}>
+                Sign in to access your secure document vault
+              </p>
+            </motion.div>
+
+            {/* Auth Card */}
+            <motion.div className="card-elevated" variants={itemVariants}>
+              {/* Login Methods */}
+              <div className="space-y-4 mb-8">
+                <motion.button
+                  onClick={onLogin}
+                  className="btn-primary w-full flex items-center justify-center gap-3 py-3.5"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  <Mail className="h-5 w-5" />
+                  <span className="font-medium">Continue with Email</span>
+                </motion.button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full" style={{ borderTop: '1px solid var(--border-default)' }} />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span
+                      className="px-4 text-sm"
+                      style={{
+                        background: 'var(--surface-white)',
+                        color: 'var(--text-tertiary)',
+                      }}
+                    >
+                      or
+                    </span>
+                  </div>
+                </div>
+
+                <motion.button
+                  onClick={onLogin}
+                  className="btn-secondary w-full flex items-center justify-center gap-3 py-3.5"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  <Wallet className="h-5 w-5" />
+                  <span className="font-medium">Connect Wallet</span>
+                </motion.button>
+              </div>
+
+              {/* Security Features */}
+              <div
+                className="p-4 rounded-lg"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className="p-1.5 rounded-md flex-shrink-0"
+                    style={{ background: 'rgba(26, 77, 128, 0.1)' }}
+                  >
+                    <Shield
+                      className="h-5 w-5"
+                      style={{ color: 'var(--accent-primary)' }}
+                    />
+                  </div>
+                  <div>
+                    <p
+                      className="text-sm font-semibold mb-2"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      Enterprise Security Standards
+                    </p>
+                    <ul className="space-y-1.5">
+                      {[
+                        'End-to-end AES-256 encryption',
+                        'Ethereum blockchain verification',
+                        'Immutable audit logging',
+                        'Granular access controls',
+                      ].map((item, index) => (
+                        <li
+                          key={index}
+                          className="flex items-center gap-2 text-sm"
+                          style={{ color: 'var(--text-tertiary)' }}
+                        >
+                          <Check
+                            className="h-3.5 w-3.5 flex-shrink-0"
+                            style={{ color: 'var(--success)' }}
+                          />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Footer */}
+            <motion.div
+              className="mt-8 text-center text-sm"
+              style={{ color: 'var(--text-muted)' }}
+              variants={itemVariants}
+            >
+              <p>
+                By continuing, you agree to our Terms of Service and Privacy Policy
+              </p>
+              <p className="mt-3">
+                Powered by{' '}
+                <span style={{ color: 'var(--text-tertiary)' }}>Privy × Ethereum × IPFS</span>
+              </p>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
-
-

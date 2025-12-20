@@ -1,6 +1,5 @@
 'use client';
 
-// import { User } from '@/types'; // Using Privy user instead
 import { cn } from '@/lib/utils';
 import {
   FileText,
@@ -10,10 +9,12 @@ import {
   Settings,
   LogOut,
   Shield,
+  GraduationCap,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface SidebarProps {
-  user: any; // Database user object
+  user: any;
   activeTab: string;
   onTabChange: (tab: string) => void;
   onLogout: () => void;
@@ -27,11 +28,10 @@ export default function Sidebar({
   onLogout,
   onOpenSettings,
 }: SidebarProps) {
-  // Format wallet address to show first 4 and last 3 characters
   const formatWalletAddress = (address: string) => {
     if (!address) return '';
     if (address.length <= 10) return address;
-    return `${address.slice(0, 4)}...${address.slice(-3)}`;
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   const navigation = [
@@ -39,148 +39,259 @@ export default function Sidebar({
       id: 'my-files',
       name: 'My Files',
       icon: FileText,
-      description: 'Files you own',
+      description: 'Documents you own',
     },
     {
       id: 'shared-files',
       name: 'Shared Files',
       icon: Share2,
-      description: 'Files shared with you',
+      description: 'Shared with you',
     },
     {
       id: 'audit-logs',
       name: 'Audit Logs',
       icon: Activity,
-      description: 'System activity logs',
+      description: 'Activity history',
     },
   ];
 
-  // Add user management only for lecturers and administrators
   const userRole = user?.role?.toLowerCase();
-  if (userRole === 'lecturer' || userRole === 'administrator') {
+  if (userRole === 'administrator') {
     navigation.push({
       id: 'user-management',
       name: 'User Management',
       icon: Users,
-      description: 'Manage users and roles',
+      description: 'Manage accounts',
     });
   }
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
+  const getRoleBadgeClass = (role: string) => {
+    switch (role?.toLowerCase()) {
       case 'administrator':
-        return 'bg-purple-100 text-purple-800';
+        return 'badge-secondary';
       case 'lecturer':
-        return 'bg-blue-100 text-blue-800';
+        return 'badge-primary';
       case 'student':
-        return 'bg-green-100 text-green-800';
+        return 'badge-success';
       default:
-        return 'bg-indigo-100 text-indigo-800'; // Default for Privy users
+        return 'badge-primary';
     }
   };
 
+  const sidebarVariants = {
+    hidden: { x: -20, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { x: -10, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: { duration: 0.4 },
+    },
+  };
+
   return (
-    <div className="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
+    <motion.div
+      className="w-80 flex flex-col"
+      style={{
+        background: 'var(--surface-white)',
+        borderRight: '1px solid var(--border-subtle)',
+      }}
+      initial="hidden"
+      animate="visible"
+      variants={sidebarVariants}
+    >
       {/* Logo and Brand */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center">
-          <Shield className="h-8 w-8 text-indigo-600 mr-3" />
+      <motion.div
+        className="p-6 pb-5"
+        style={{ borderBottom: '1px solid var(--border-subtle)' }}
+        variants={itemVariants}
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl" style={{ background: 'var(--accent-primary)' }}>
+            <Shield className="h-7 w-7 text-white" strokeWidth={1.5} />
+          </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">SecureShare</h1>
-            <p className="text-xs text-gray-500">Blockchain Document Sharing</p>
+            <h1
+              className="text-xl font-semibold"
+              style={{ fontFamily: 'Crimson Pro, serif', color: 'var(--text-primary)' }}
+            >
+              SecureShare
+            </h1>
+            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              Document Management
+            </p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* User Profile */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center">
-          <div className="h-10 w-10 bg-indigo-600 rounded-full flex items-center justify-center">
-            <span className="text-white font-medium">
-              {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
-            </span>
+      <motion.div
+        className="p-6 py-5"
+        style={{ borderBottom: '1px solid var(--border-subtle)' }}
+        variants={itemVariants}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            <div
+              className="h-12 w-12 rounded-full flex items-center justify-center"
+              style={{
+                background: 'var(--accent-primary)',
+              }}
+            >
+              <span className="text-lg font-semibold text-white">
+                {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div
+              className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2"
+              style={{
+                background: 'var(--success)',
+                borderColor: 'var(--surface-white)',
+              }}
+            />
           </div>
-          <div className="ml-3 flex-1">
-            <p className="text-sm font-medium text-gray-900 truncate">
+
+          {/* User Info */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold truncate mb-0.5" style={{ color: 'var(--text-primary)' }}>
               {user?.name || 'User'}
             </p>
-            <p className="text-xs text-gray-500 truncate">
-              {user?.email ||
-                (user?.wallet_address
-                  ? formatWalletAddress(user.wallet_address)
-                  : 'No email')}
+            <p className="text-xs truncate" style={{ color: 'var(--text-tertiary)', fontFamily: 'Fira Code, monospace' }}>
+              {user?.email || (user?.wallet_address ? formatWalletAddress(user.wallet_address) : 'No email')}
             </p>
           </div>
         </div>
 
-        <div className="mt-3">
-          <span
-            className={cn(
-              'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize',
-              getRoleBadgeColor(user?.role || 'user')
-            )}
-          >
-            {user?.role || 'User'}
-          </span>
+        {/* Role Badge */}
+        <div className="flex items-center gap-2">
+          <div className={`badge ${getRoleBadgeClass(user?.role)}`}>
+            <GraduationCap className="h-3 w-3 mr-1.5" />
+            <span className="capitalize">{user?.role || 'User'}</span>
+          </div>
           {user?.department && (
-            <p className="text-xs text-gray-500 mt-1">{user.department}</p>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              • {user.department}
+            </span>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <div className="space-y-2">
+      <motion.nav className="flex-1 p-4" variants={itemVariants}>
+        <div className="space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
 
             return (
-              <button
+              <motion.button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  'w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
-                  isActive
-                    ? 'bg-indigo-100 text-indigo-900 border border-indigo-200'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left',
                 )}
+                style={{
+                  background: isActive ? 'var(--bg-secondary)' : 'transparent',
+                  border: isActive ? '1px solid var(--border-default)' : '1px solid transparent',
+                }}
+                whileHover={{
+                  backgroundColor: isActive ? 'var(--bg-secondary)' : 'var(--bg-tertiary)',
+                }}
+                whileTap={{ scale: 0.98 }}
+                variants={itemVariants}
               >
-                <Icon className="h-5 w-5 mr-3 flex-shrink-0" />
-                <div className="text-left">
-                  <div>{item.name}</div>
-                  <div
-                    className={cn(
-                      'text-xs',
-                      isActive ? 'text-indigo-600' : 'text-gray-500'
-                    )}
-                  >
-                    {item.description}
+                <div className="relative flex items-center gap-3 flex-1">
+                  <Icon
+                    className="h-5 w-5 flex-shrink-0"
+                    style={{ color: isActive ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}
+                    strokeWidth={1.5}
+                  />
+
+                  <div className="flex-1">
+                    <div
+                      className="text-sm font-medium mb-0.5"
+                      style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                    >
+                      {item.name}
+                    </div>
+                    <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                      {item.description}
+                    </div>
                   </div>
                 </div>
-              </button>
+              </motion.button>
             );
           })}
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Footer Actions */}
-      <div className="p-4 border-t border-gray-200 space-y-2">
-        <button
+      <motion.div
+        className="p-4 space-y-2"
+        style={{ borderTop: '1px solid var(--border-subtle)' }}
+        variants={itemVariants}
+      >
+        <motion.button
           onClick={onOpenSettings}
-          className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all"
+          style={{
+            border: '1px solid var(--border-default)',
+            background: 'transparent',
+          }}
+          whileHover={{
+            borderColor: 'var(--accent-primary)',
+            backgroundColor: 'var(--bg-tertiary)',
+          }}
+          whileTap={{ scale: 0.98 }}
         >
-          <Settings className="h-5 w-5 mr-3" />
-          Settings
-        </button>
-        <button
+          <Settings className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.5} />
+          <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+            Settings
+          </span>
+        </motion.button>
+
+        <motion.button
           onClick={onLogout}
-          className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all"
+          style={{
+            border: '1px solid var(--border-default)',
+            background: 'transparent',
+          }}
+          whileHover={{
+            borderColor: 'var(--error)',
+            backgroundColor: 'rgba(139, 58, 58, 0.05)',
+          }}
+          whileTap={{ scale: 0.98 }}
         >
-          <LogOut className="h-5 w-5 mr-3" />
-          Sign Out
-        </button>
+          <LogOut className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.5} />
+          <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+            Sign Out
+          </span>
+        </motion.button>
+      </motion.div>
+
+      {/* Version indicator */}
+      <div
+        className="px-6 py-3 text-center text-xs"
+        style={{
+          color: 'var(--text-muted)',
+          borderTop: '1px solid var(--border-subtle)',
+          fontFamily: 'Fira Code, monospace',
+        }}
+      >
+        SecureShare v2.0 • Secure
       </div>
-    </div>
+    </motion.div>
   );
 }

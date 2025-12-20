@@ -1,29 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileMetadata, User } from '@/types';
+import { FileMetadata } from '@/types';
 import { apiGet } from '@/lib/api-client';
 import {
   FileText,
-  Upload,
-  Download,
-  Share2,
-  Shield,
-  Activity,
-  Users,
-  Settings,
-  LogOut,
   Search,
-  Filter,
   Plus,
 } from 'lucide-react';
-import { formatFileSize, formatDate, getFileIcon } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import FileUploadModal from '@/components/FileUploadModal';
 import FileGrid from '@/components/FileGrid';
 import Sidebar from '@/components/Sidebar';
 import SettingsModal from '@/components/SettingsModal';
 import AuditLogsPage from '@/components/AuditLogsPage';
+import UserManagementPage from '@/components/UserManagementPage';
 
 interface DashboardProps {
   user: any; // Database user object
@@ -96,7 +87,7 @@ export default function Dashboard({
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
       <Sidebar
         user={currentUser}
         activeTab={activeTab}
@@ -108,10 +99,22 @@ export default function Dashboard({
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+        <header
+          className="px-8 py-6"
+          style={{
+            background: 'var(--surface-white)',
+            borderBottom: '1px solid var(--border-subtle)',
+          }}
+        >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1
+                className="text-3xl font-semibold mb-2"
+                style={{
+                  color: 'var(--text-primary)',
+                  fontFamily: 'Crimson Pro, serif',
+                }}
+              >
                 {activeTab === 'my-files'
                   ? 'My Files'
                   : activeTab === 'shared-files'
@@ -120,13 +123,13 @@ export default function Dashboard({
                   ? 'Audit Logs'
                   : 'User Management'}
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p style={{ color: 'var(--text-tertiary)' }}>
                 {activeTab === 'my-files'
-                  ? 'Manage your uploaded documents'
+                  ? 'Manage your encrypted documents'
                   : activeTab === 'shared-files'
                   ? 'Access files shared with you'
                   : activeTab === 'audit-logs'
-                  ? 'View system activity logs'
+                  ? 'View complete system activity trail'
                   : 'Manage users and permissions'}
               </p>
             </div>
@@ -135,23 +138,31 @@ export default function Dashboard({
               {(activeTab === 'my-files' || activeTab === 'shared-files') && (
                 <>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Search
+                      className="absolute left-3 top-1/2 h-5 w-5 pointer-events-none"
+                      style={{
+                        color: 'var(--text-muted)',
+                        transform: 'translateY(-50%)',
+                        zIndex: 10
+                      }}
+                    />
                     <input
                       type="text"
                       placeholder="Search files..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="input-field w-64"
+                      style={{ paddingLeft: '2.5rem', paddingRight: '1rem' }}
                     />
                   </div>
 
                   {activeTab === 'my-files' && (
                     <button
                       onClick={() => setShowUploadModal(true)}
-                      className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                      className="btn-primary flex items-center gap-2"
                     >
-                      <Plus className="h-5 w-5 mr-2" />
-                      Upload File
+                      <Plus className="h-5 w-5" />
+                      <span>Upload File</span>
                     </button>
                   )}
                 </>
@@ -163,7 +174,7 @@ export default function Dashboard({
         {/* Content */}
         <main className="flex-1">
           {activeTab === 'my-files' || activeTab === 'shared-files' ? (
-            <div className="p-6">
+            <div className="p-8">
               <FileGrid
                 files={filteredFiles}
                 loading={loading}
@@ -175,24 +186,28 @@ export default function Dashboard({
           ) : activeTab === 'audit-logs' ? (
             <AuditLogsPage user={currentUser} privyUser={privyUser} />
           ) : activeTab === 'user-management' ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="text-center text-gray-500">
-                <Users className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">User Management</h3>
-                <p>User management functionality will be implemented here.</p>
-                <p className="text-sm mt-2">
-                  Administrators can manage user roles and permissions.
-                </p>
-              </div>
-            </div>
+            <UserManagementPage user={currentUser} privyUser={privyUser} />
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="text-center text-gray-500">
-                <FileText className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">
-                  Welcome to SecureShare
+            <div className="flex items-center justify-center min-h-full">
+              <div
+                className="card-elevated p-12 text-center max-w-md"
+              >
+                <FileText
+                  className="h-16 w-16 mx-auto mb-6"
+                  style={{ color: 'var(--text-muted)' }}
+                />
+                <h3
+                  className="text-xl font-bold mb-3"
+                  style={{
+                    color: 'var(--text-primary)',
+                    fontFamily: 'IBM Plex Mono, monospace',
+                  }}
+                >
+                  WELCOME TO SECURESHARE
                 </h3>
-                <p>Select a section from the sidebar to get started.</p>
+                <p style={{ color: 'var(--text-tertiary)' }}>
+                  Select a section from the sidebar to get started.
+                </p>
               </div>
             </div>
           )}

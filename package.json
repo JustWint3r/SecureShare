@@ -23,6 +23,7 @@
     "clsx": "^2.0.0",
     "crypto-js": "^4.2.0",
     "ethers": "^6.9.0",
+    "framer-motion": "^12.23.26",
     "helia": "^4.0.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.460.0",

@@ -103,10 +103,14 @@ export default function Home() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-lg text-gray-600">Loading SecureShare...</p>
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-3" style={{ borderColor: 'var(--border-default)' }}></div>
+            <div className="absolute inset-0 rounded-full border-3 border-t-0 border-r-0 border-b-0 animate-spin" style={{ borderLeftColor: 'var(--accent-primary)' }}></div>
+          </div>
+          <p className="text-lg font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'Crimson Pro, serif' }}>Loading SecureShare</p>
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-tertiary)' }}>Initializing your secure workspace</p>
         </div>
       </div>
     );
@@ -125,16 +129,18 @@ export default function Home() {
   // Show error state if sync failed
   if (syncError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-100">
-        <div className="text-center max-w-md">
-          <div className="bg-red-100 rounded-full h-32 w-32 flex items-center justify-center mx-auto mb-4">
-            <span className="text-red-600 text-4xl">⚠️</span>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+        <div className="text-center max-w-md card-elevated">
+          <div className="relative w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(139, 58, 58, 0.1)' }}>
+            <svg className="w-12 h-12" style={{ color: 'var(--error)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
           </div>
-          <h2 className="text-2xl font-bold text-red-800 mb-2">Sync Error</h2>
-          <p className="text-red-600 mb-4">{syncError}</p>
+          <h2 className="text-2xl font-semibold mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Crimson Pro, serif' }}>Connection Error</h2>
+          <p className="mb-8" style={{ color: 'var(--text-secondary)' }}>{syncError}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            className="btn-danger w-full"
           >
             Refresh Page
           </button>
@@ -146,14 +152,20 @@ export default function Home() {
   // Only render Dashboard when user is synced to database
   if (!userProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-lg text-gray-600">
-            Setting up your account...
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-3" style={{ borderColor: 'var(--border-default)' }}></div>
+            <div className="absolute inset-0 rounded-full border-3 border-t-0 border-r-0 border-b-0 animate-spin" style={{ borderLeftColor: 'var(--accent-primary)' }}></div>
+          </div>
+          <p className="text-lg font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'Crimson Pro, serif' }}>
+            Setting up your account
+          </p>
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+            Preparing your secure workspace
           </p>
           {syncRetries > 0 && (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>
               Retry attempt {syncRetries}/3
             </p>
           )}
