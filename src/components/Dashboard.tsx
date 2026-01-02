@@ -15,6 +15,9 @@ import Sidebar from '@/components/Sidebar';
 import SettingsModal from '@/components/SettingsModal';
 import AuditLogsPage from '@/components/AuditLogsPage';
 import UserManagementPage from '@/components/UserManagementPage';
+import ContactAdminPage from '@/components/ContactAdminPage';
+import InquiriesManagementPage from '@/components/InquiriesManagementPage';
+import MyInquiriesPage from '@/components/MyInquiriesPage';
 
 interface DashboardProps {
   user: any; // Database user object
@@ -50,7 +53,9 @@ export default function Dashboard({
     try {
       setLoading(true);
       const type = activeTab === 'my-files' ? 'owned' : 'accessible';
-      const response = await apiGet(`/api/files?type=${type}`, privyUser);
+      // Add timestamp to bust cache
+      const cacheBuster = `_t=${Date.now()}`;
+      const response = await apiGet(`/api/files?type=${type}&${cacheBuster}`, privyUser);
       const data = await response.json();
 
       if (data.success) {
@@ -121,7 +126,15 @@ export default function Dashboard({
                   ? 'Shared with Me'
                   : activeTab === 'audit-logs'
                   ? 'Audit Logs'
-                  : 'User Management'}
+                  : activeTab === 'user-management'
+                  ? 'User Management'
+                  : activeTab === 'my-inquiries'
+                  ? 'My Inquiries'
+                  : activeTab === 'contact-admin'
+                  ? 'Contact Administrator'
+                  : activeTab === 'inquiries-management'
+                  ? 'Inquiries Management'
+                  : 'Dashboard'}
               </h1>
               <p style={{ color: 'var(--text-tertiary)' }}>
                 {activeTab === 'my-files'
@@ -130,7 +143,15 @@ export default function Dashboard({
                   ? 'Access files shared with you'
                   : activeTab === 'audit-logs'
                   ? 'View complete system activity trail'
-                  : 'Manage users and permissions'}
+                  : activeTab === 'user-management'
+                  ? 'Manage users and permissions'
+                  : activeTab === 'my-inquiries'
+                  ? 'View your inquiry history and responses'
+                  : activeTab === 'contact-admin'
+                  ? 'Send inquiries or requests to administrators'
+                  : activeTab === 'inquiries-management'
+                  ? 'Review and respond to user inquiries'
+                  : 'SecureShare Dashboard'}
               </p>
             </div>
 
@@ -187,6 +208,12 @@ export default function Dashboard({
             <AuditLogsPage user={currentUser} privyUser={privyUser} />
           ) : activeTab === 'user-management' ? (
             <UserManagementPage user={currentUser} privyUser={privyUser} />
+          ) : activeTab === 'my-inquiries' ? (
+            <MyInquiriesPage user={currentUser} privyUser={privyUser} />
+          ) : activeTab === 'contact-admin' ? (
+            <ContactAdminPage user={currentUser} privyUser={privyUser} />
+          ) : activeTab === 'inquiries-management' ? (
+            <InquiriesManagementPage user={currentUser} privyUser={privyUser} />
           ) : (
             <div className="flex items-center justify-center min-h-full">
               <div

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth-middleware';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { BlockchainService } from '@/lib/blockchain';
 
 // Delete a file
 export async function DELETE(
@@ -41,8 +42,26 @@ export async function DELETE(
       );
     }
 
+    // Log to blockchain before deletion
+    let transactionHash: string | null = null;
+    try {
+      const blockchain = new BlockchainService({
+        rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL || 'http://localhost:8545',
+        contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '',
+        privateKey: process.env.PRIVATE_KEY || '',
+      });
+
+      const tx = await blockchain.deleteFile(fileId);
+      const receipt = await tx.wait();
+      transactionHash = receipt?.hash || null;
+      console.log('[Delete] Blockchain transaction:', transactionHash);
+    } catch (blockchainError) {
+      console.error('Blockchain delete error:', blockchainError);
+      // Don't fail the deletion if blockchain logging fails
+    }
+
     // Delete the file from the database
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from('files')
       .delete()
       .eq('id', fileId);
@@ -56,7 +75,7 @@ export async function DELETE(
     }
 
     // Log the deletion in access logs
-    await supabase.from('access_logs').insert({
+    await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
       user_id: user.id,
       action: 'delete',
@@ -65,10 +84,8 @@ export async function DELETE(
         request.headers.get('x-real-ip') ||
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
+      transaction_hash: transactionHash,
     });
-
-    // TODO: In a real implementation, also delete from IPFS
-    // TODO: In a real implementation, also log to blockchain
 
     return NextResponse.json({
       success: true,

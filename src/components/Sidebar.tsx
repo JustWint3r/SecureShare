@@ -10,6 +10,8 @@ import {
   LogOut,
   Shield,
   GraduationCap,
+  HelpCircle,
+  MessageCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -34,6 +36,8 @@ export default function Sidebar({
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  const userRole = user?.role?.toLowerCase();
+
   const navigation = [
     {
       id: 'my-files',
@@ -55,13 +59,34 @@ export default function Sidebar({
     },
   ];
 
-  const userRole = user?.role?.toLowerCase();
   if (userRole === 'administrator') {
     navigation.push({
       id: 'user-management',
       name: 'User Management',
       icon: Users,
       description: 'Manage accounts',
+    });
+    navigation.push({
+      id: 'inquiries-management',
+      name: 'Inquiries',
+      icon: MessageCircle,
+      description: 'Review inquiries',
+    });
+  }
+
+  // Add Contact Admin and My Inquiries for students and lecturers only
+  if (userRole === 'student' || userRole === 'lecturer') {
+    navigation.push({
+      id: 'my-inquiries',
+      name: 'My Inquiries',
+      icon: MessageCircle,
+      description: 'View your inquiries',
+    });
+    navigation.push({
+      id: 'contact-admin',
+      name: 'Contact Admin',
+      icon: HelpCircle,
+      description: 'Send inquiries',
     });
   }
 

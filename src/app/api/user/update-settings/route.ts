@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, email, department, newPassword } = body;
+    const { name, email, newPassword } = body;
 
     const updateData: any = {
       updated_at: new Date().toISOString(),
@@ -30,9 +30,8 @@ export async function POST(request: NextRequest) {
       updateData.email = email || null;
     }
 
-    if (department !== undefined) {
-      updateData.department = department || null;
-    }
+    // Department can only be changed by administrators in User Management page
+    // Not allowed to be updated from settings modal
 
     // Update password if provided
     if (newPassword) {

@@ -52,7 +52,7 @@ export default function SettingsModal({
       const updateData = {
         name: data.name,
         email: data.email || null,
-        department: data.department || null,
+        // Department is not included - can only be changed by admins in User Management
       };
 
       const response = await fetch('/api/user/update-settings', {
@@ -202,9 +202,18 @@ export default function SettingsModal({
                   {...register('department')}
                   className="input-field"
                   placeholder="e.g., Computer Science"
-                  style={{ paddingLeft: '2.5rem' }}
+                  disabled
+                  style={{
+                    paddingLeft: '2.5rem',
+                    background: 'var(--bg-secondary)',
+                    cursor: 'not-allowed',
+                    opacity: 0.7,
+                  }}
                 />
               </div>
+              <p className="mt-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                Contact an administrator to change your department
+              </p>
             </div>
 
             {/* Role Display (Read-only) */}

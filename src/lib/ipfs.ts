@@ -207,9 +207,9 @@ export class ServerIPFS {
 
   async getFileStats(hash: string): Promise<{ size: number } | null> {
     await this.initialize();
-    
+
     try {
-      const stats = await this.helia.files.stat(\`/ipfs/\${hash}\`);
+      const stats = await this.helia.files.stat(`/ipfs/${hash}`);
       return {
         size: stats.size
       };

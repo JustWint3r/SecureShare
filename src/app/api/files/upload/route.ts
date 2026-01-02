@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth-middleware';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { encryptFileData, generateEncryptionKey } from '@/lib/encryption';
-import { generateFileId } from '@/lib/blockchain';
+import { generateFileId, BlockchainService } from '@/lib/blockchain';
+import { ServerIPFS } from '@/lib/ipfs';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_TYPES = [
@@ -70,30 +71,40 @@ export async function POST(request: NextRequest) {
     // Generate unique file ID
     const fileId = generateFileId();
 
-    // Store encrypted file in Supabase Storage
-    // Create a blob from the encrypted data
-    const encryptedBlob = new Blob([encryptedData], {
-      type: 'application/octet-stream',
-    });
-    const storagePath = `encrypted-files/${user.id}/${fileId}`;
-
-    const { error: storageError } = await supabaseAdmin.storage
-      .from('files')
-      .upload(storagePath, encryptedBlob, {
-        contentType: 'application/octet-stream',
-        upsert: false,
+    // Upload encrypted file to IPFS
+    let ipfsHash: string;
+    try {
+      const ipfs = ServerIPFS.getInstance();
+      const buffer = Buffer.from(encryptedData);
+      const ipfsResult = await ipfs.uploadFile(buffer);
+      ipfsHash = ipfsResult.hash;
+      console.log('[Upload] File uploaded to IPFS:', ipfsHash);
+    } catch (ipfsError) {
+      console.error('IPFS upload error:', ipfsError);
+      // Fallback to Supabase storage if IPFS fails
+      const encryptedBlob = new Blob([Buffer.from(encryptedData)], {
+        type: 'application/octet-stream',
       });
+      const storagePath = `encrypted-files/${user.id}/${fileId}`;
 
-    if (storageError) {
-      console.error('Storage error:', storageError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to store encrypted file' },
-        { status: 500 }
-      );
+      const { error: storageError } = await supabaseAdmin.storage
+        .from('files')
+        .upload(storagePath, encryptedBlob, {
+          contentType: 'application/octet-stream',
+          upsert: false,
+        });
+
+      if (storageError) {
+        console.error('Storage error:', storageError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to store encrypted file' },
+          { status: 500 }
+        );
+      }
+
+      ipfsHash = storagePath;
+      console.log('[Upload] Fallback: File stored in Supabase storage');
     }
-
-    // Use storage path as IPFS hash (in real implementation, this would be actual IPFS hash)
-    const ipfsHash = storagePath;
 
     // Store file metadata in database
     const { data: fileRecord, error: dbError} = await supabaseAdmin
@@ -119,6 +130,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Log to blockchain
+    let transactionHash: string | null = null;
+    try {
+      const blockchain = new BlockchainService({
+        rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL || 'http://localhost:8545',
+        contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '',
+        privateKey: process.env.PRIVATE_KEY || '',
+      });
+
+      const tx = await blockchain.uploadFile(fileId, ipfsHash, file.name, file.size);
+      const receipt = await tx.wait();
+      transactionHash = receipt?.hash || null;
+      console.log('[Upload] Blockchain transaction:', transactionHash);
+    } catch (blockchainError) {
+      console.error('Blockchain logging error:', blockchainError);
+      // Don't fail the upload if blockchain logging fails
+    }
+
     // Log the upload in access logs
     const { error: logError } = await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
@@ -129,15 +158,13 @@ export async function POST(request: NextRequest) {
         request.headers.get('x-real-ip') ||
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
+      transaction_hash: transactionHash,
     });
 
     if (logError) {
       console.error('Failed to log upload action:', logError);
       // Don't fail the upload if logging fails
     }
-
-    // TODO: In a real implementation, also log to blockchain
-    // await blockchainService.uploadFile(fileId, ipfsHash, file.name, file.size);
 
     return NextResponse.json({
       success: true,

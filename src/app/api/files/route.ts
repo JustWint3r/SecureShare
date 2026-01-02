@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth-middleware';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 // Get user's files
 export async function GET(request: NextRequest) {
@@ -16,24 +16,33 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const type = url.searchParams.get('type') || 'owned'; // 'owned' or 'accessible'
 
-    let query = supabase.from('files').select(`
-        id,
-        name,
-        size,
-        type,
-        ipfs_hash,
-        created_at,
-        updated_at,
-        owner_id,
-        users!owner_id(name, email)
-      `);
+    let files;
+    let error;
 
     if (type === 'owned') {
       // Get files owned by the user
-      query = query.eq('owner_id', user.id);
+      const result = await supabaseAdmin
+        .from('files')
+        .select(`
+          id,
+          name,
+          size,
+          type,
+          ipfs_hash,
+          created_at,
+          updated_at,
+          owner_id,
+          users!owner_id(name, email)
+        `)
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+
+      files = result.data;
+      error = result.error;
     } else if (type === 'accessible') {
       // Get files the user has access to (through permissions)
-      query = query
+      const result = await supabaseAdmin
+        .from('files')
         .select(
           `
           id,
@@ -52,12 +61,12 @@ export async function GET(request: NextRequest) {
         `
         )
         .eq('file_permissions.user_id', user.id)
-        .eq('file_permissions.is_active', true);
-    }
+        .eq('file_permissions.is_active', true)
+        .order('created_at', { ascending: false });
 
-    const { data: files, error } = await query.order('created_at', {
-      ascending: false,
-    });
+      files = result.data;
+      error = result.error;
+    }
 
     if (error) {
       console.error('Database error:', error);

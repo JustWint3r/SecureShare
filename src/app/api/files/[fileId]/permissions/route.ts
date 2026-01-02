@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-middleware';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { BlockchainService, PermissionType } from '@/lib/blockchain';
 
 // Grant file permissions
 export const POST = requireAuth(async (request: NextRequest, user) => {
@@ -134,8 +135,45 @@ export const POST = requireAuth(async (request: NextRequest, user) => {
       }
     }
 
+    // Get user's wallet address for blockchain
+    const { data: targetUserWallet } = await supabase
+      .from('users')
+      .select('wallet_address')
+      .eq('id', user_id)
+      .single();
+
+    // Log to blockchain
+    let transactionHash: string | null = null;
+    if (targetUserWallet?.wallet_address) {
+      try {
+        const blockchain = new BlockchainService({
+          rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL || 'http://localhost:8545',
+          contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '',
+          privateKey: process.env.PRIVATE_KEY || '',
+        });
+
+        // Map permission type string to enum
+        const permissionTypeEnum =
+          permission_type === 'read' ? PermissionType.READ :
+          permission_type === 'write' ? PermissionType.WRITE :
+          PermissionType.SHARE;
+
+        const tx = await blockchain.grantPermission(
+          fileId,
+          targetUserWallet.wallet_address,
+          permissionTypeEnum
+        );
+        const receipt = await tx.wait();
+        transactionHash = receipt?.hash || null;
+        console.log('[Permission] Blockchain transaction:', transactionHash);
+      } catch (blockchainError) {
+        console.error('Blockchain permission grant error:', blockchainError);
+        // Don't fail the permission grant if blockchain logging fails
+      }
+    }
+
     // Log the permission grant
-    await supabase.from('access_logs').insert({
+    await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
       user_id: user.id,
       action: 'share',
@@ -144,6 +182,7 @@ export const POST = requireAuth(async (request: NextRequest, user) => {
         request.headers.get('x-real-ip') ||
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
+      transaction_hash: transactionHash,
     });
 
     return NextResponse.json({
@@ -221,8 +260,35 @@ export const DELETE = requireAuth(async (request: NextRequest, user) => {
       );
     }
 
+    // Get user's wallet address for blockchain
+    const { data: targetUserWallet } = await supabase
+      .from('users')
+      .select('wallet_address')
+      .eq('id', userId)
+      .single();
+
+    // Log to blockchain
+    let transactionHash: string | null = null;
+    if (targetUserWallet?.wallet_address) {
+      try {
+        const blockchain = new BlockchainService({
+          rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL || 'http://localhost:8545',
+          contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '',
+          privateKey: process.env.PRIVATE_KEY || '',
+        });
+
+        const tx = await blockchain.revokePermission(fileId, targetUserWallet.wallet_address);
+        const receipt = await tx.wait();
+        transactionHash = receipt?.hash || null;
+        console.log('[Revoke] Blockchain transaction:', transactionHash);
+      } catch (blockchainError) {
+        console.error('Blockchain permission revoke error:', blockchainError);
+        // Don't fail the revocation if blockchain logging fails
+      }
+    }
+
     // Log the permission revocation
-    await supabase.from('access_logs').insert({
+    await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
       user_id: user.id,
       action: 'revoke',
@@ -231,6 +297,7 @@ export const DELETE = requireAuth(async (request: NextRequest, user) => {
         request.headers.get('x-real-ip') ||
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
+      transaction_hash: transactionHash,
     });
 
     return NextResponse.json({

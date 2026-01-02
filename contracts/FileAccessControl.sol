@@ -101,7 +101,7 @@ contract FileAccessControl is Ownable, ReentrancyGuard {
         _;
     }
     
-    constructor() Ownable(msg.sender) {}
+    constructor() {}
     
     /**
      * @dev Register a new user
