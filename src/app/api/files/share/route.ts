@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log the share action
+    // Log the share action with file metadata
     await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
       user_id: user.id,
@@ -79,6 +79,10 @@ export async function POST(request: NextRequest) {
         request.headers.get('x-real-ip') ||
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
+      metadata: {
+        file_name: file.name,
+        permission_level: permission,
+      },
     });
 
     // Generate share URL

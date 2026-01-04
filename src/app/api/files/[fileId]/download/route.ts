@@ -58,22 +58,46 @@ export async function GET(
       );
     }
 
-    // Retrieve encrypted file from Supabase Storage
-    const storagePath = file.ipfs_hash; // This is the storage path we saved earlier
-    const { data: encryptedFileData, error: downloadError } =
-      await supabaseAdmin.storage.from('files').download(storagePath);
+    // Retrieve encrypted file from IPFS or Supabase Storage
+    let encryptedBytes: Uint8Array;
 
-    if (downloadError || !encryptedFileData) {
-      console.error('Storage download error:', downloadError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to retrieve encrypted file' },
-        { status: 500 }
-      );
+    // Check if ipfs_hash is an IPFS CID (starts with 'baf' or 'Qm') or a storage path
+    const isIPFS = file.ipfs_hash.startsWith('baf') || file.ipfs_hash.startsWith('Qm');
+
+    if (isIPFS) {
+      // Download from IPFS
+      try {
+        const { ServerIPFS } = await import('@/lib/ipfs');
+        const ipfs = ServerIPFS.getInstance();
+        const buffer = await ipfs.downloadFile(file.ipfs_hash);
+        encryptedBytes = new Uint8Array(buffer);
+        console.log('[Download] Retrieved from IPFS:', file.ipfs_hash);
+      } catch (ipfsError) {
+        console.error('IPFS download error:', ipfsError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to retrieve file from IPFS' },
+          { status: 500 }
+        );
+      }
+    } else {
+      // Download from Supabase Storage (fallback)
+      const storagePath = file.ipfs_hash;
+      const { data: encryptedFileData, error: downloadError } =
+        await supabaseAdmin.storage.from('files').download(storagePath);
+
+      if (downloadError || !encryptedFileData) {
+        console.error('Storage download error:', downloadError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to retrieve encrypted file' },
+          { status: 500 }
+        );
+      }
+
+      // Convert blob to Uint8Array
+      const encryptedArrayBuffer = await encryptedFileData.arrayBuffer();
+      encryptedBytes = new Uint8Array(encryptedArrayBuffer);
+      console.log('[Download] Retrieved from Supabase Storage');
     }
-
-    // Convert blob to Uint8Array
-    const encryptedArrayBuffer = await encryptedFileData.arrayBuffer();
-    const encryptedBytes = new Uint8Array(encryptedArrayBuffer);
 
     // Parse encryption key and IV
     const { key, iv } = JSON.parse(file.encrypted_key);
@@ -105,7 +129,7 @@ export async function GET(
       );
     }
 
-    // Log the download
+    // Log the download with file metadata
     await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
       user_id: user.id,
@@ -115,6 +139,11 @@ export async function GET(
         request.headers.get('x-real-ip') ||
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
+      metadata: {
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+      },
     });
 
     // Return the decrypted file as a binary response

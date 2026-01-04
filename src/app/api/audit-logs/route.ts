@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  console.log('[Audit Logs] Authenticated user:', { id: user.id, email: user.email, role: user.role });
+
   try {
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get('fileId');
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Build query
+    // Build query - use LEFT JOIN to include logs for deleted files
     let query = supabaseAdmin
       .from('access_logs')
       .select(`
@@ -39,39 +41,32 @@ export async function GET(request: NextRequest) {
       query = query.eq('action', action);
     }
 
-    // For non-admin users, only show logs for files they own or have access to
+    // For non-admin users, show logs for:
+    // 1. Files they currently own or have access to
+    // 2. Any action they performed (including on deleted files)
     if (user.role !== 'administrator') {
-      // Get user's file IDs (owned + accessible)
-      const { data: userFiles } = await supabaseAdmin
-        .from('files')
-        .select('id')
-        .eq('owner_id', user.id);
-
-      const { data: accessibleFiles } = await supabaseAdmin
-        .from('file_permissions')
-        .select('file_id')
-        .eq('user_id', user.id)
-        .eq('is_active', true);
-
-      const fileIds = [
-        ...(userFiles?.map((f) => f.id) || []),
-        ...(accessibleFiles?.map((f) => f.file_id) || []),
-      ];
-
-      if (fileIds.length > 0) {
-        query = query.in('file_id', fileIds);
-      } else {
-        // User has no files, return empty array
-        return NextResponse.json({
-          success: true,
-          logs: [],
-          total: 0,
-        });
-      }
+      // Simply filter by user_id - show all logs where this user was the actor
+      // This includes uploads, deletes, shares, etc. on both existing and deleted files
+      query = query.eq('user_id', user.id);
     }
 
-    // Get total count
-    const { count } = await query.range(0, 0);
+    // Get total count (need a separate query with count option)
+    const countQuery = supabaseAdmin
+      .from('access_logs')
+      .select('*', { count: 'exact', head: true });
+
+    // Apply same filters for count
+    if (fileId) {
+      countQuery.eq('file_id', fileId);
+    }
+    if (action) {
+      countQuery.eq('action', action);
+    }
+    if (user.role !== 'administrator') {
+      countQuery.eq('user_id', user.id);
+    }
+
+    const { count } = await countQuery;
 
     // Apply pagination
     const { data: logs, error } = await query.range(offset, offset + limit - 1);

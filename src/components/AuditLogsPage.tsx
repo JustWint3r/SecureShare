@@ -165,8 +165,9 @@ export default function AuditLogsPage({ user, privyUser }: AuditLogsPageProps) {
 
   const filteredLogs = logs.filter((log) => {
     const searchLower = searchQuery.toLowerCase();
+    const fileName = log.file?.name || log.metadata?.file_name || '';
     return (
-      log.file?.name?.toLowerCase().includes(searchLower) ||
+      fileName.toLowerCase().includes(searchLower) ||
       log.user?.name?.toLowerCase().includes(searchLower) ||
       log.user?.email?.toLowerCase().includes(searchLower) ||
       log.action?.toLowerCase().includes(searchLower)
@@ -305,9 +306,16 @@ export default function AuditLogsPage({ user, privyUser }: AuditLogsPageProps) {
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
                         <FileText className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {log.file?.name || 'Unknown File'}
-                        </span>
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">
+                            {log.file?.name || log.metadata?.file_name || 'Unknown File'}
+                          </span>
+                          {log.metadata?.deleted && (
+                            <span className="ml-2 text-xs text-red-600 font-semibold">
+                              (Deleted)
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">

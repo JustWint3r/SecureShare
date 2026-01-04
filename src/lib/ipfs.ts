@@ -142,11 +142,10 @@ export async function stopIPFS() {
   }
 }
 
-// Server-side IPFS functions for API routes
+// Server-side IPFS functions using Storacha
 export class ServerIPFS {
   private static instance: ServerIPFS;
-  private helia: any = null;
-  private fs: any = null;
+  private client: any = null;
 
   static getInstance(): ServerIPFS {
     if (!ServerIPFS.instance) {
@@ -156,49 +155,89 @@ export class ServerIPFS {
   }
 
   async initialize() {
-    if (this.helia) return;
+    if (this.client) return;
 
     try {
-      // Use HTTP API client for server-side operations
-      const { create } = await import('ipfs-http-client');
-      
-      // Fallback to local IPFS node
-      const ipfsApiUrl = process.env.IPFS_API_URL || 'http://localhost:5001';
-      this.helia = create({ url: ipfsApiUrl });
-      
-      console.log('Server IPFS client initialized');
+      const { create } = await import('@storacha/client');
+      const { StoreConf } = await import('@storacha/client/stores/conf');
+      const path = await import('path');
+      const os = await import('os');
+
+      // Use persistent storage in user's home directory
+      const storePath = path.join(os.homedir(), '.storacha-secureshare');
+      const store = new StoreConf({ profile: storePath });
+
+      // Create a new client with persistent store
+      this.client = await create({ store });
+
+      // Login with email
+      const email = process.env.STORACHA_EMAIL || 'justwint3r@gmail.com';
+
+      try {
+        await this.client.login(email);
+      } catch (loginError) {
+        // If login fails, user might need to verify email
+        console.log('Login failed, may need email verification:', loginError);
+      }
+
+      // Create or get existing space
+      const spaces = await this.client.spaces();
+
+      if (spaces.length === 0) {
+        // Create a new space if none exists
+        const space = await this.client.createSpace('SecureShare');
+        await this.client.setCurrentSpace(space.did());
+        console.log('Created new Storacha space:', space.did());
+      } else {
+        // Use the first available space
+        await this.client.setCurrentSpace(spaces[0].did());
+        console.log('Using existing Storacha space:', spaces[0].did());
+      }
+
+      console.log('Storacha IPFS client initialized with email:', email);
+
     } catch (error) {
-      console.error('Failed to initialize server IPFS:', error);
+      console.error('Failed to initialize Storacha IPFS:', error);
       throw error;
     }
   }
 
   async uploadFile(buffer: Buffer): Promise<{ hash: string; size: number }> {
     await this.initialize();
-    
+
     try {
-      const result = await this.helia.add(buffer);
+      // Convert buffer to Blob then to File
+      const blob = new Blob([buffer], { type: 'application/octet-stream' });
+      const file = new File([blob], 'file', { type: 'application/octet-stream' });
+
+      // Upload to Storacha (IPFS)
+      const cid = await this.client.uploadFile(file);
+
+      console.log('[Storacha] File uploaded to IPFS with CID:', cid.toString());
+
       return {
-        hash: result.cid.toString(),
+        hash: cid.toString(),
         size: buffer.length
       };
     } catch (error) {
-      console.error('Failed to upload to IPFS:', error);
+      console.error('Failed to upload to Storacha IPFS:', error);
       throw error;
     }
   }
 
   async downloadFile(hash: string): Promise<Buffer> {
-    await this.initialize();
-    
+    // For downloading, we'll use a public IPFS gateway
     try {
-      const chunks: Uint8Array[] = [];
-      
-      for await (const chunk of this.helia.cat(hash)) {
-        chunks.push(chunk);
+      const gateway = process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://w3s.link/ipfs';
+      const url = `${gateway}/${hash}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch from IPFS gateway: ${response.statusText}`);
       }
-      
-      return Buffer.concat(chunks);
+
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
     } catch (error) {
       console.error('Failed to download from IPFS:', error);
       throw error;
@@ -206,12 +245,18 @@ export class ServerIPFS {
   }
 
   async getFileStats(hash: string): Promise<{ size: number } | null> {
-    await this.initialize();
-
     try {
-      const stats = await this.helia.files.stat(`/ipfs/${hash}`);
+      const gateway = process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://w3s.link/ipfs';
+      const url = `${gateway}/${hash}`;
+
+      const response = await fetch(url, { method: 'HEAD' });
+      if (!response.ok) {
+        return null;
+      }
+
+      const contentLength = response.headers.get('content-length');
       return {
-        size: stats.size
+        size: contentLength ? parseInt(contentLength) : 0
       };
     } catch (error) {
       console.error('Failed to get file stats:', error);

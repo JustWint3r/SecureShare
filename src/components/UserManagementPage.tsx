@@ -186,8 +186,8 @@ export default function UserManagementPage({ user, privyUser }: UserManagementPa
   const filteredUsers = users.filter((u) => {
     const searchLower = searchQuery.toLowerCase();
     return (
-      u.name.toLowerCase().includes(searchLower) ||
-      u.email.toLowerCase().includes(searchLower) ||
+      (u.name && u.name.toLowerCase().includes(searchLower)) ||
+      (u.email && u.email.toLowerCase().includes(searchLower)) ||
       (u.department && u.department.toLowerCase().includes(searchLower))
     );
   });

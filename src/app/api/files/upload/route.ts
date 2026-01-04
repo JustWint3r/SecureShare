@@ -148,7 +148,8 @@ export async function POST(request: NextRequest) {
       // Don't fail the upload if blockchain logging fails
     }
 
-    // Log the upload in access logs
+    // Log the upload in access logs with file metadata
+    // Store file name in metadata so it's available even after deletion
     const { error: logError } = await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
       user_id: user.id,
@@ -159,6 +160,11 @@ export async function POST(request: NextRequest) {
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
       transaction_hash: transactionHash,
+      metadata: {
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+      },
     });
 
     if (logError) {

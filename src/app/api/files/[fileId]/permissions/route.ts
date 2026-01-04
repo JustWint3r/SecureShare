@@ -31,7 +31,7 @@ export const POST = requireAuth(async (request: NextRequest, user) => {
     // Check if current user owns the file or is an administrator
     const { data: file, error: fileError } = await supabase
       .from('files')
-      .select('owner_id')
+      .select('owner_id, name')
       .eq('id', fileId)
       .single();
 
@@ -172,7 +172,7 @@ export const POST = requireAuth(async (request: NextRequest, user) => {
       }
     }
 
-    // Log the permission grant
+    // Log the permission grant with file metadata
     await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
       user_id: user.id,
@@ -183,6 +183,11 @@ export const POST = requireAuth(async (request: NextRequest, user) => {
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
       transaction_hash: transactionHash,
+      metadata: {
+        file_name: file.name,
+        granted_to: targetUser.name,
+        permission_type: permission_type,
+      },
     });
 
     return NextResponse.json({
@@ -220,7 +225,7 @@ export const DELETE = requireAuth(async (request: NextRequest, user) => {
     // Check if current user owns the file or is an administrator
     const { data: file, error: fileError } = await supabase
       .from('files')
-      .select('owner_id')
+      .select('owner_id, name')
       .eq('id', fileId)
       .single();
 
@@ -260,10 +265,10 @@ export const DELETE = requireAuth(async (request: NextRequest, user) => {
       );
     }
 
-    // Get user's wallet address for blockchain
+    // Get user's wallet address and name for blockchain and logging
     const { data: targetUserWallet } = await supabase
       .from('users')
-      .select('wallet_address')
+      .select('wallet_address, name')
       .eq('id', userId)
       .single();
 
@@ -287,7 +292,7 @@ export const DELETE = requireAuth(async (request: NextRequest, user) => {
       }
     }
 
-    // Log the permission revocation
+    // Log the permission revocation with file metadata
     await supabaseAdmin.from('access_logs').insert({
       file_id: fileId,
       user_id: user.id,
@@ -298,6 +303,10 @@ export const DELETE = requireAuth(async (request: NextRequest, user) => {
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
       transaction_hash: transactionHash,
+      metadata: {
+        file_name: file.name,
+        revoked_from: targetUserWallet?.name || 'Unknown User',
+      },
     });
 
     return NextResponse.json({
@@ -328,7 +337,7 @@ export const GET = requireAuth(async (request: NextRequest, user) => {
     // Check if user has access to view permissions
     const { data: file, error: fileError } = await supabase
       .from('files')
-      .select('owner_id')
+      .select('owner_id, name')
       .eq('id', fileId)
       .single();
 

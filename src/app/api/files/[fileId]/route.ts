@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth-middleware';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { BlockchainService } from '@/lib/blockchain';
 
 // Delete a file
@@ -8,6 +8,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ fileId: string }> }
 ) {
+  console.log('[DELETE] Handler called!');
   const user = await verifyAuth(request);
 
   if (!user) {
@@ -21,7 +22,7 @@ export async function DELETE(
     const { fileId } = await params;
 
     // First, check if the file exists and if the user owns it
-    const { data: file, error: fetchError } = await supabase
+    const { data: file, error: fetchError } = await supabaseAdmin
       .from('files')
       .select('id, name, owner_id')
       .eq('id', fileId)
@@ -60,7 +61,31 @@ export async function DELETE(
       // Don't fail the deletion if blockchain logging fails
     }
 
+    // IMPORTANT: Log the deletion BEFORE deleting the file
+    // This way the file_id foreign key is still valid when we insert the log
+    const { error: logError } = await supabaseAdmin.from('access_logs').insert({
+      file_id: fileId,
+      user_id: user.id,
+      action: 'delete',
+      ip_address:
+        request.headers.get('x-forwarded-for') ||
+        request.headers.get('x-real-ip') ||
+        'unknown',
+      user_agent: request.headers.get('user-agent') || 'unknown',
+      transaction_hash: transactionHash,
+      metadata: {
+        file_name: file.name,
+        deleted: true,
+      },
+    });
+
+    if (logError) {
+      console.error('Failed to log delete action:', logError);
+      // Continue with deletion even if logging fails
+    }
+
     // Delete the file from the database
+    // The foreign key SET NULL will automatically set file_id to NULL in the audit log
     const { error: deleteError } = await supabaseAdmin
       .from('files')
       .delete()
@@ -73,19 +98,6 @@ export async function DELETE(
         { status: 500 }
       );
     }
-
-    // Log the deletion in access logs
-    await supabaseAdmin.from('access_logs').insert({
-      file_id: fileId,
-      user_id: user.id,
-      action: 'delete',
-      ip_address:
-        request.headers.get('x-forwarded-for') ||
-        request.headers.get('x-real-ip') ||
-        'unknown',
-      user_agent: request.headers.get('user-agent') || 'unknown',
-      transaction_hash: transactionHash,
-    });
 
     return NextResponse.json({
       success: true,
