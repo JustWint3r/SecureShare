@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { BlockchainService, UserRole } from '@/lib/blockchain';
 
 export async function POST(request: NextRequest) {
   try {
@@ -125,6 +126,47 @@ export async function POST(request: NextRequest) {
       }
 
       user = updatedUser;
+
+      // If wallet address was just added, register on blockchain
+      if (walletAddress && !existingUserByEmail.wallet_address) {
+        try {
+          console.log('[Blockchain] Registering existing user with new wallet:', {
+            walletAddress,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          });
+
+          const blockchain = new BlockchainService({
+            rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL!,
+            contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!,
+            privateKey: process.env.PRIVATE_KEY!,
+          });
+
+          let blockchainRole: UserRole = UserRole.STUDENT;
+          if (user.role === 'lecturer') {
+            blockchainRole = UserRole.LECTURER;
+          } else if (user.role === 'administrator') {
+            blockchainRole = UserRole.ADMINISTRATOR;
+          }
+
+          const tx = await blockchain.registerUser(
+            walletAddress,
+            blockchainRole,
+            user.email || '',
+            user.name
+          );
+
+          await tx.wait();
+          console.log('[Blockchain] Existing user registered successfully on blockchain');
+        } catch (blockchainError: any) {
+          if (blockchainError?.message?.includes('User already registered')) {
+            console.log('[Blockchain] User already registered on blockchain');
+          } else {
+            console.error('[Blockchain] Error registering user on blockchain:', blockchainError);
+          }
+        }
+      }
     } else {
       // Create new user
       const defaultName = email
@@ -155,6 +197,50 @@ export async function POST(request: NextRequest) {
       }
 
       user = newUser;
+
+      // Register new user on blockchain if wallet address is available
+      if (walletAddress) {
+        try {
+          console.log('[Blockchain] Registering new user:', {
+            walletAddress,
+            email: email || 'No email',
+            name: defaultName,
+            role: user.role,
+          });
+
+          const blockchain = new BlockchainService({
+            rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL!,
+            contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!,
+            privateKey: process.env.PRIVATE_KEY!,
+          });
+
+          // Map database role to blockchain UserRole enum
+          let blockchainRole: UserRole = UserRole.STUDENT;
+          if (user.role === 'lecturer') {
+            blockchainRole = UserRole.LECTURER;
+          } else if (user.role === 'administrator') {
+            blockchainRole = UserRole.ADMINISTRATOR;
+          }
+
+          const tx = await blockchain.registerUser(
+            walletAddress,
+            blockchainRole,
+            email || '',
+            defaultName
+          );
+
+          await tx.wait();
+          console.log('[Blockchain] User registered successfully on blockchain');
+        } catch (blockchainError: any) {
+          // Don't fail the entire registration if blockchain registration fails
+          // The user is already created in the database
+          if (blockchainError?.message?.includes('User already registered')) {
+            console.log('[Blockchain] User already registered on blockchain');
+          } else {
+            console.error('[Blockchain] Error registering user on blockchain:', blockchainError);
+          }
+        }
+      }
     }
 
     // Remove sensitive data before sending response

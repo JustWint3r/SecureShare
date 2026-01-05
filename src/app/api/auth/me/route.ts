@@ -1,11 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies();
+    // Try Privy authentication first (via header)
+    const privyUserId = request.headers.get('x-privy-user-id');
+
+    if (privyUserId) {
+      // Get user from database using Privy ID
+      const { data: user, error } = await supabaseAdmin
+        .from('users')
+        .select('id, email, name, role, department, created_at, updated_at')
+        .eq('privy_id', privyUserId)
+        .single();
+
+      if (!error && user) {
+        return NextResponse.json({
+          success: true,
+          user,
+        });
+      }
+    }
+
+    // Fallback to JWT cookie authentication
+    const cookieStore = await cookies();
     const token = cookieStore.get('auth-token');
 
     if (!token) {
@@ -30,7 +50,8 @@ export async function GET(request: NextRequest) {
 
     if (error || !user) {
       // Clear invalid token
-      cookieStore.delete('auth-token');
+      const cookieStore2 = await cookies();
+      cookieStore2.delete('auth-token');
       return NextResponse.json(
         { success: false, error: 'Invalid token' },
         { status: 401 }
@@ -45,7 +66,7 @@ export async function GET(request: NextRequest) {
     console.error('Auth verification error:', error);
 
     // Clear invalid token
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.delete('auth-token');
 
     return NextResponse.json(

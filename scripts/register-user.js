@@ -10,8 +10,8 @@ async function main() {
   const contract = FileAccessControl.attach(contractAddress);
 
   // User details - replace with actual user data
-  const userAddress = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'; // Default Hardhat account
-  const userRole = 0; // 0 = Student, 1 = Lecturer, 2 = Administrator
+  const userAddress = '0x6FdD539fe0F9bCA4C81d9361929d31a23C006CDD'; // Your actual wallet from Privy
+  const userRole = 2; // 0 = Student, 1 = Lecturer, 2 = Administrator
   const email = 'justwint3r@gmail.com';
   const name = 'Wint3r';
 

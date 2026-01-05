@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
-import { apiGet } from '@/lib/api-client';
-import { FileText, Download, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
+import { apiGet, apiPost } from '@/lib/api-client';
+import { FileText, Download, ArrowLeft, Loader2, CheckCircle, Send, Share2, Copy, Check } from 'lucide-react';
 import { formatFileSize, formatDate, getFileIconComponent } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -30,6 +30,15 @@ export default function SharedFilePage() {
   const [permissionLevel, setPermissionLevel] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [accessGranted, setAccessGranted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [resharePermission, setResharePermission] = useState<'view' | 'comment' | 'full'>('view');
+  const [reshareLink, setReshareLink] = useState('');
+  const [generatingReshare, setGeneratingReshare] = useState(false);
+  const [copiedReshare, setCopiedReshare] = useState(false);
 
   useEffect(() => {
     if (ready && !authenticated) {
@@ -37,8 +46,26 @@ export default function SharedFilePage() {
       login();
     } else if (ready && authenticated && privyUser) {
       handleFileAccess();
+      fetchCurrentUser();
     }
   }, [ready, authenticated, privyUser]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      console.log('[SharedFile] Fetching current user...');
+      const response = await apiGet('/api/auth/me', privyUser || undefined);
+      const data = await response.json();
+      console.log('[SharedFile] Current user response:', data);
+      if (data.success) {
+        setCurrentUser(data.user);
+        console.log('[SharedFile] Current user set:', data.user);
+      } else {
+        console.error('[SharedFile] Failed to fetch user:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   const handleFileAccess = async () => {
     try {
@@ -98,6 +125,107 @@ export default function SharedFilePage() {
   const handleGoToDashboard = () => {
     router.push('/');
   };
+
+  const fetchComments = async () => {
+    if (!file) return;
+    setLoadingComments(true);
+    try {
+      const response = await apiGet(`/api/files/${file.id}/comments`, privyUser || undefined);
+      const data = await response.json();
+      if (data.success) {
+        setComments(data.comments);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    console.log('[SharedFile] Submit comment clicked', { file, newComment, currentUser });
+    if (!file || !newComment.trim() || !currentUser) {
+      console.log('[SharedFile] Submit blocked:', {
+        hasFile: !!file,
+        hasComment: !!newComment.trim(),
+        hasUser: !!currentUser
+      });
+      return;
+    }
+    setSubmittingComment(true);
+    try {
+      console.log('[SharedFile] Submitting comment:', {
+        comment: newComment,
+        userId: currentUser.id
+      });
+      const response = await fetch(`/api/files/${file.id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies for authentication
+        body: JSON.stringify({
+          comment: newComment,
+          userId: currentUser.id // Send the user ID
+        }),
+      });
+      const data = await response.json();
+      console.log('[SharedFile] Comment response:', data);
+      if (data.success) {
+        setComments([...comments, data.comment]);
+        setNewComment('');
+        toast.success('Comment added successfully!');
+      } else {
+        toast.error(data.error || 'Failed to add comment');
+      }
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+      toast.error('Failed to add comment');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleGenerateReshare = async () => {
+    if (!file) return;
+    setGeneratingReshare(true);
+    try {
+      const response = await apiPost(
+        `/api/files/${file.id}/reshare`,
+        { permission: resharePermission },
+        privyUser || undefined
+      );
+      const data = await response.json();
+      if (data.success) {
+        setReshareLink(data.shareUrl);
+        toast.success('Reshare link generated!');
+      } else {
+        toast.error(data.error || 'Failed to generate reshare link');
+      }
+    } catch (error) {
+      console.error('Error generating reshare:', error);
+      toast.error('Failed to generate reshare link');
+    } finally {
+      setGeneratingReshare(false);
+    }
+  };
+
+  const copyReshareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(reshareLink);
+      setCopiedReshare(true);
+      toast.success('Link copied to clipboard!');
+      setTimeout(() => setCopiedReshare(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  useEffect(() => {
+    if (file && (permissionLevel === 'comment' || permissionLevel === 'full')) {
+      fetchComments();
+    }
+  }, [file, permissionLevel]);
 
   if (!ready || loading) {
     return (
@@ -245,6 +373,153 @@ export default function SharedFilePage() {
                 Go to Shared Files
               </button>
             </div>
+
+            {/* Comments Section - Only for 'comment' and 'full' permissions */}
+            {(permissionLevel === 'comment' || permissionLevel === 'full') && (
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Comments</h3>
+
+                {/* Comment Input */}
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSubmitComment()}
+                      placeholder="Add a comment..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      disabled={submittingComment}
+                    />
+                    <button
+                      onClick={handleSubmitComment}
+                      disabled={submittingComment || !newComment.trim() || !currentUser}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                      title={!currentUser ? 'Loading user data...' : 'Send comment'}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Comments List */}
+                <div className="space-y-3">
+                  {loadingComments ? (
+                    <div className="text-center py-4">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+                    </div>
+                  ) : comments.length === 0 ? (
+                    <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
+                      <p className="text-sm">No comments yet. Be the first to comment!</p>
+                    </div>
+                  ) : (
+                    comments.map((comment) => (
+                      <div key={comment.id} className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-medium text-gray-900">{comment.user?.name || 'Unknown User'}</p>
+                            <p className="text-xs text-gray-500">{formatDate(comment.created_at)}</p>
+                          </div>
+                        </div>
+                        <p className="text-gray-700">{comment.comment}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Reshare Section - Only for 'full' permission */}
+            {permissionLevel === 'full' && (
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Reshare File</h3>
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 border border-purple-200">
+                  <p className="text-sm text-gray-700 mb-4">
+                    You have full access to this file. You can reshare it with others.
+                  </p>
+
+                  {!reshareLink ? (
+                    <>
+                      {/* Permission Selector */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Select Permission Level
+                        </label>
+                        <select
+                          value={resharePermission}
+                          onChange={(e) => setResharePermission(e.target.value as 'view' | 'comment' | 'full')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="view">Can View Only</option>
+                          <option value="comment">Can View + Comment</option>
+                          <option value="full">Full Access</option>
+                        </select>
+                      </div>
+
+                      <button
+                        onClick={handleGenerateReshare}
+                        disabled={generatingReshare}
+                        className="w-full inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
+                      >
+                        {generatingReshare ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Share2 className="w-4 h-4 mr-2" />
+                            Generate Reshare Link
+                          </>
+                        )}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {/* Reshare Link Display */}
+                      <div className="mb-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Reshare Link
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={reshareLink}
+                            readOnly
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm"
+                          />
+                          <button
+                            onClick={copyReshareLink}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                          >
+                            {copiedReshare ? (
+                              <>
+                                <Check className="h-4 w-4 mr-1" />
+                                Copied
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-4 w-4 mr-1" />
+                                Copy
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setReshareLink('');
+                          setResharePermission('view');
+                        }}
+                        className="w-full px-4 py-2 text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
+                      >
+                        Generate Another Link
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

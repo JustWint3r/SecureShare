@@ -4,8 +4,9 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const user = await verifyAuth(request);
 
   if (!user) {
@@ -44,7 +45,7 @@ export async function PATCH(
     const { data: updatedInquiry, error } = await supabaseAdmin
       .from('admin_inquiries')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -66,7 +67,7 @@ export async function PATCH(
         request.headers.get('x-real-ip') ||
         'unknown',
       user_agent: request.headers.get('user-agent') || 'unknown',
-      metadata: { inquiry_id: params.id, status: updateData.status },
+      metadata: { inquiry_id: id, status: updateData.status },
     });
 
     return NextResponse.json({
