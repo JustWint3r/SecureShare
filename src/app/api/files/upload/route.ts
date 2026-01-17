@@ -15,7 +15,7 @@ export const config = {
   },
 };
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB - Reduced for Vercel free tier compatibility
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_TYPES = [
   'application/pdf',
   'application/msword',
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { success: false, error: 'File size exceeds 10MB limit. Please upload smaller files.' },
+        { success: false, error: 'File size exceeds 500MB limit' },
         { status: 400 }
       );
     }
