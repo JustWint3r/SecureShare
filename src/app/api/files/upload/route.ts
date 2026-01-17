@@ -5,7 +5,17 @@ import { encryptFileData, generateEncryptionKey } from '@/lib/encryption';
 import { generateFileId, BlockchainService } from '@/lib/blockchain';
 import { ServerIPFS } from '@/lib/ipfs';
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+// Configure API route for larger file uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb', // Increase body size limit for file uploads
+    },
+    responseLimit: false,
+  },
+};
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB - Reduced for Vercel free tier compatibility
 const ALLOWED_TYPES = [
   'application/pdf',
   'application/msword',
@@ -41,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { success: false, error: 'File size exceeds 500MB limit' },
+        { success: false, error: 'File size exceeds 10MB limit. Please upload smaller files.' },
         { status: 400 }
       );
     }
@@ -130,7 +140,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log to blockchain
+    // Log to blockchain (async - don't wait for confirmation to avoid timeout)
     let transactionHash: string | null = null;
     try {
       const blockchain = new BlockchainService({
@@ -140,9 +150,17 @@ export async function POST(request: NextRequest) {
       });
 
       const tx = await blockchain.uploadFile(fileId, ipfsHash, file.name, file.size);
-      const receipt = await tx.wait();
-      transactionHash = receipt?.hash || null;
-      console.log('[Upload] Blockchain transaction:', transactionHash);
+      transactionHash = tx.hash; // Get transaction hash immediately without waiting
+      console.log('[Upload] Blockchain transaction submitted:', transactionHash);
+
+      // Wait for confirmation asynchronously (fire and forget - don't block response)
+      tx.wait()
+        .then((receipt: any) => {
+          console.log('[Upload] Blockchain transaction confirmed:', receipt?.hash);
+        })
+        .catch((err: any) => {
+          console.error('[Upload] Blockchain confirmation failed:', err);
+        });
     } catch (blockchainError) {
       console.error('Blockchain logging error:', blockchainError);
       // Don't fail the upload if blockchain logging fails

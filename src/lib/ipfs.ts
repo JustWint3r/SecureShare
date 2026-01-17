@@ -158,6 +158,9 @@ export class ServerIPFS {
     if (this.client) return;
 
     try {
+      console.log('[Storacha] Initializing client...');
+      const startTime = Date.now();
+
       const { create } = await import('@storacha/client');
       const { StoreConf } = await import('@storacha/client/stores/conf');
       const path = await import('path');
@@ -177,7 +180,7 @@ export class ServerIPFS {
         await this.client.login(email);
       } catch (loginError) {
         // If login fails, user might need to verify email
-        console.log('Login failed, may need email verification:', loginError);
+        console.log('[Storacha] Login failed, may need email verification');
       }
 
       // Create or get existing space
@@ -187,17 +190,18 @@ export class ServerIPFS {
         // Create a new space if none exists
         const space = await this.client.createSpace('SecureShare');
         await this.client.setCurrentSpace(space.did());
-        console.log('Created new Storacha space:', space.did());
+        console.log('[Storacha] Created new space:', space.did());
       } else {
         // Use the first available space
         await this.client.setCurrentSpace(spaces[0].did());
-        console.log('Using existing Storacha space:', spaces[0].did());
+        console.log('[Storacha] Using existing space:', spaces[0].did());
       }
 
-      console.log('Storacha IPFS client initialized with email:', email);
+      const elapsed = Date.now() - startTime;
+      console.log(`[Storacha] Client initialized in ${elapsed}ms`);
 
     } catch (error) {
-      console.error('Failed to initialize Storacha IPFS:', error);
+      console.error('[Storacha] Failed to initialize:', error);
       throw error;
     }
   }

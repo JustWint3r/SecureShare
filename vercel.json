@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/files/upload",
+      "dest": "/api/files/upload",
+      "headers": {
+        "cache-control": "no-store"
+      }
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_APP_URL": "https://secure-share-swart.vercel.app"
+  }
+}
